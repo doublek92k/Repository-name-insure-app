@@ -8,7 +8,7 @@ const supabase = createClient(
 )
 
 export default function Customers() {
-  const [customers, setCustomers] = useState([])
+const [customers, setCustomers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({
     name: '', age: '', job: '', phone: '', status: '상담중', score: '', memo: ''
