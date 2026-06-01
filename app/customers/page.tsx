@@ -45,7 +45,7 @@ async function addCustomer() {
   setAdding(false)
 }
 
-  async function deleteCustomer(id) {
+  async function deleteCustomer(id: any) {
     if (!confirm('삭제할까요?')) return
     await supabase.from('customers').delete().eq('name', id)
     fetchCustomers()
