@@ -1,6 +1,7 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation";
 
 const supabase = createClient(
   "https://tlffsjvkyccwxdpdmcxs.supabase.co",
@@ -17,6 +18,7 @@ const STATUS_TEXT: Record<string, string> = {
 };
 
 export default function Customers() {
+  const router = useRouter();
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ name: "", age: "", job: "", phone: "", status: "상담중", score: "", memo: "" });
@@ -26,7 +28,7 @@ export default function Customers() {
   useEffect(() => { fetchCustomers(); }, []);
 
   async function fetchCustomers() {
-    const { data } = await supabase.from("customers").select("*");
+    const { data } = await supabase.from("customers").select("*").order("id", { ascending: false });
     if (data) setCustomers(data);
     setLoading(false);
   }
@@ -43,30 +45,17 @@ export default function Customers() {
     setAdding(false);
   }
 
-  async function deleteCustomer(name: string) {
-    if (!confirm("삭제할까요?")) return;
-    await supabase.from("customers").delete().eq("name", name);
-    fetchCustomers();
-  }
-
   function exportExcel() {
     const headers = ["이름", "나이", "직업", "연락처", "상태", "점수", "메모"];
     const rows = filtered.map(c => [c.name, c.age, c.job, c.phone, c.status, c.score, c.memo]);
     const csv = [headers, ...rows].map(r => r.map(v => `"${v ?? ""}"`).join(",")).join("\n");
-    const BOM = "\uFEFF";
-    const blob = new Blob([BOM + csv], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `고객목록_${new Date().toLocaleDateString("ko-KR").replace(/\. /g, "-").replace(".", "")}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  }
-
-  function sendEmail(c: any) {
-    const subject = encodeURIComponent(`[InsureKit] ${c.name} 고객 안내`);
-    const body = encodeURIComponent(`안녕하세요, ${c.name} 고객님.\n\n보험 관련 안내 드립니다.\n\n감사합니다.`);
-    window.open(`mailto:?subject=${subject}&body=${body}`);
   }
 
   const filtered = filterStatus === "전체" ? customers : customers.filter(c => c.status === filterStatus);
@@ -80,7 +69,7 @@ export default function Customers() {
           📊 엑셀 내보내기
         </button>
       </div>
-      <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "28px" }}>고객 정보를 등록하고 관리하세요</p>
+      <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "28px" }}>고객 이름을 클릭하면 상세 페이지로 이동해요</p>
 
       {/* 입력 폼 */}
       <div style={{ background: "#fff", borderRadius: "14px", padding: "22px", boxShadow: "0 1px 6px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: "20px" }}>
@@ -106,14 +95,14 @@ export default function Customers() {
       </div>
 
       {/* 필터 */}
-      <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+      <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
         {statuses.map(s => (
           <button key={s} onClick={() => setFilterStatus(s)}
             style={{ padding: "6px 14px", borderRadius: "20px", border: "1px solid", fontSize: "13px", cursor: "pointer", fontWeight: 500,
               borderColor: filterStatus === s ? "#1e3a5f" : "#e2e8f0",
               background: filterStatus === s ? "#1e3a5f" : "#fff",
               color: filterStatus === s ? "#fff" : "#64748b" }}>
-            {s} {s !== "전체" ? `(${customers.filter(c => c.status === s).length})` : `(${customers.length})`}
+            {s} ({s === "전체" ? customers.length : customers.filter(c => c.status === s).length})
           </button>
         ))}
       </div>
@@ -133,8 +122,11 @@ export default function Customers() {
               {filtered.length === 0 ? (
                 <tr><td colSpan={8} style={{ padding: "40px", textAlign: "center", color: "#94a3b8", fontSize: "14px" }}>등록된 고객이 없어요</td></tr>
               ) : filtered.map(c => (
-                <tr key={c.name} style={{ borderTop: "1px solid #f1f5f9" }}>
-                  <td style={{ padding: "12px 14px", fontWeight: 700, fontSize: "14px", color: "#1e293b" }}>{c.name}</td>
+                <tr key={c.id} style={{ borderTop: "1px solid #f1f5f9", cursor: "pointer" }}
+                  onClick={() => router.push(`/customers/${c.id}`)}>
+                  <td style={{ padding: "12px 14px" }}>
+                    <span style={{ fontWeight: 700, fontSize: "14px", color: "#1e3a5f", textDecoration: "underline", textDecorationColor: "#bfdbfe" }}>{c.name}</span>
+                  </td>
                   <td style={{ padding: "12px 14px", fontSize: "13px", color: "#64748b" }}>{c.age}</td>
                   <td style={{ padding: "12px 14px", fontSize: "13px", color: "#64748b" }}>{c.job}</td>
                   <td style={{ padding: "12px 14px", fontSize: "13px", color: "#64748b" }}>{c.phone}</td>
@@ -143,11 +135,9 @@ export default function Customers() {
                   </td>
                   <td style={{ padding: "12px 14px", fontSize: "13px", fontWeight: 600, color: "#1e293b" }}>{c.score}점</td>
                   <td style={{ padding: "12px 14px", fontSize: "12px", color: "#94a3b8", maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.memo}</td>
-                  <td style={{ padding: "12px 14px" }}>
-                    <div style={{ display: "flex", gap: "6px" }}>
-                      <button onClick={() => sendEmail(c)} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "6px", padding: "4px 10px", cursor: "pointer", color: "#2563eb", fontSize: "12px", fontWeight: 600 }}>✉️ 메일</button>
-                      <button onClick={() => deleteCustomer(c.name)} style={{ background: "none", border: "1px solid #e2e8f0", borderRadius: "6px", padding: "4px 8px", cursor: "pointer", color: "#94a3b8", fontSize: "12px" }}>삭제</button>
-                    </div>
+                  <td style={{ padding: "12px 14px" }} onClick={e => e.stopPropagation()}>
+                    <button onClick={() => window.open(`mailto:?subject=${encodeURIComponent(`[InsureKit] ${c.name} 고객 안내`)}&body=${encodeURIComponent(`안녕하세요, ${c.name} 고객님.\n\n보험 관련 안내 드립니다.\n\n감사합니다.`)}`)}
+                      style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "6px", padding: "4px 10px", cursor: "pointer", color: "#2563eb", fontSize: "12px", fontWeight: 600 }}>✉️ 메일</button>
                   </td>
                 </tr>
               ))}
