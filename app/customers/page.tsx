@@ -51,7 +51,7 @@ async function addCustomer() {
     fetchCustomers()
   }
 
-  const STATUS_COLOR = {
+  const STATUS_COLOR: Record<string, string> = {
     '상담중': '#E6F1FB', '이탈위험': '#FCEBEB',
     '갱신임박': '#FAEEDA', '성약완료': '#EAF3DE', '휴면': '#F1EFE8'
   }
