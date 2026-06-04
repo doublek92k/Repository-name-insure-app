@@ -1,12 +1,7 @@
-﻿"use client";
+"use client";
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-
-const supabase = createClient(
-  "https://tlffsjvkyccwxdpdmcxs.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsZmZzanZreWNjd3hkcGRtY3hzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNzM1NDYsImV4cCI6MjA5NTY0OTU0Nn0.l839UdiUMyLrJBsf5OAH7FHLqLJRMOJYeOjJog0Sq9I"
-);
 
 const STATUS_COLOR: Record<string, string> = {
   "상담중": "#ede9fe", "이탈위험": "#fee2e2",
@@ -34,111 +29,81 @@ export default function Customers() {
   }
 
   async function addCustomer() {
-    if (!form.name) return alert("이름을 입력해주세요");
+    if (!form.name) return alert("이름을 입력하세요");
     setAdding(true);
-    await supabase.from("customers").insert([{
-      name: form.name, age: parseInt(form.age) || null, job: form.job,
-      phone: form.phone, status: form.status, score: parseInt(form.score) || 0, memo: form.memo,
-    }]);
+    await supabase.from("customers").insert([{ ...form, age: Number(form.age) || null, score: Number(form.score) || 0 }]);
     setForm({ name: "", age: "", job: "", phone: "", status: "상담중", score: "", memo: "" });
     await fetchCustomers();
     setAdding(false);
   }
 
-  function exportExcel() {
-    const headers = ["이름", "나이", "직업", "연락처", "상태", "점수", "메모"];
-    const rows = filtered.map(c => [c.name, c.age, c.job, c.phone, c.status, c.score, c.memo]);
-    const csv = [headers, ...rows].map(r => r.map(v => `"${v ?? ""}"`).join(",")).join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  async function exportExcel() {
+    const headers = ["이름", "나이", "직업", "전화번호", "상태", "점수", "메모"];
+    const rows = customers.map((c) => [c.name, c.age, c.job, c.phone, c.status, c.score, c.memo]);
+    const csvContent = [headers, ...rows].map((r) => r.map((v) => `"${v ?? ""}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `고객목록_${new Date().toLocaleDateString("ko-KR").replace(/\. /g, "-").replace(".", "")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const a = document.createElement("a"); a.href = url; a.download = "고객목록.csv"; a.click();
   }
 
-  const filtered = filterStatus === "전체" ? customers : customers.filter(c => c.status === filterStatus);
+  const filtered = filterStatus === "전체" ? customers : customers.filter((c) => c.status === filterStatus);
   const statuses = ["전체", "상담중", "이탈위험", "갱신임박", "성약완료", "휴면"];
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-        <h1 style={{ fontSize: "24px", fontWeight: 800, color: "#1e293b", letterSpacing: "-0.5px" }}>고객 관리</h1>
-        <button onClick={exportExcel} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", background: "#059669", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}>
-          📊 엑셀 내보내기
-        </button>
-      </div>
-      <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "28px" }}>고객 이름을 클릭하면 상세 페이지로 이동해요</p>
-
-      {/* 입력 폼 */}
-      <div style={{ background: "#fff", borderRadius: "14px", padding: "22px", boxShadow: "0 1px 6px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: "20px" }}>
-        <h3 style={{ fontSize: "14px", fontWeight: 700, marginBottom: "14px", color: "#1e293b" }}>새 고객 추가</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px", marginBottom: "10px" }}>
-          {[["이름 *", "name"], ["나이", "age"], ["직업", "job"], ["연락처", "phone"], ["성약 가능성(0~100)", "score"]].map(([ph, key]) => (
-            <input key={key} placeholder={ph} value={(form as any)[key]} onChange={e => setForm({ ...form, [key]: e.target.value })}
-              style={{ padding: "9px 12px", border: "1px solid #e2e8f0", borderRadius: "8px", fontSize: "14px", outline: "none", color: "#1e293b" }} />
-          ))}
-          <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}
-            style={{ padding: "9px 12px", border: "1px solid #e2e8f0", borderRadius: "8px", fontSize: "14px", color: "#1e293b" }}>
-            {["상담중", "이탈위험", "갱신임박", "성약완료", "휴면"].map(s => <option key={s}>{s}</option>)}
-          </select>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
+        <div>
+          <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#1e293b", margin: 0 }}>👥 고객 관리</h1>
+          <p style={{ color: "#64748b", fontSize: "14px", marginTop: "4px" }}>전체 {customers.length}명</p>
         </div>
-        <div style={{ display: "flex", gap: "10px" }}>
-          <input placeholder="메모" value={form.memo} onChange={e => setForm({ ...form, memo: e.target.value })}
-            style={{ flex: 1, padding: "9px 12px", border: "1px solid #e2e8f0", borderRadius: "8px", fontSize: "14px", outline: "none" }} />
-          <button onClick={addCustomer} disabled={adding}
-            style={{ padding: "9px 24px", background: "#1e3a5f", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "14px", fontWeight: 600 }}>
-            {adding ? "추가 중..." : "+ 추가"}
-          </button>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          <button onClick={exportExcel} style={{ background: "#f0fdf4", color: "#059669", border: "1px solid #bbf7d0", borderRadius: "8px", padding: "8px 16px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>📊 엑셀 내보내기</button>
+          <button onClick={() => setAdding(!adding)} style={{ background: adding ? "#f1f5f9" : "#4f46e5", color: adding ? "#64748b" : "#fff", border: "none", borderRadius: "8px", padding: "8px 16px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>{adding ? "취소" : "+ 고객 추가"}</button>
         </div>
       </div>
 
-      {/* 필터 */}
+      {adding && (
+        <div style={{ background: "#fff", borderRadius: "14px", padding: "20px", boxShadow: "0 1px 6px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", marginBottom: "20px" }}>
+          <div style={{ fontWeight: 700, fontSize: "14px", color: "#1e293b", marginBottom: "14px" }}>새 고객 등록</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "10px", marginBottom: "12px" }}>
+            {[{ p: "이름 *", k: "name" }, { p: "나이", k: "age" }, { p: "직업", k: "job" }, { p: "전화번호", k: "phone" }, { p: "점수(0-100)", k: "score" }].map(({ p, k }) => (
+              <input key={k} placeholder={p} value={(form as any)[k]} onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))} style={{ border: "1px solid #e2e8f0", borderRadius: "8px", padding: "9px 12px", fontSize: "14px" }} />
+            ))}
+            <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} style={{ border: "1px solid #e2e8f0", borderRadius: "8px", padding: "9px 12px", fontSize: "14px" }}>
+              {["상담중", "이탈위험", "갱신임박", "성약완료", "휴면"].map((s) => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <input placeholder="메모" value={form.memo} onChange={(e) => setForm((f) => ({ ...f, memo: e.target.value }))} style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "9px 12px", fontSize: "14px", boxSizing: "border-box", marginBottom: "12px" }} />
+          <button onClick={addCustomer} style={{ background: "#4f46e5", color: "#fff", border: "none", borderRadius: "8px", padding: "10px 24px", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}>저장</button>
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: "8px", marginBottom: "16px", flexWrap: "wrap" }}>
-        {statuses.map(s => (
-          <button key={s} onClick={() => setFilterStatus(s)}
-            style={{ padding: "6px 14px", borderRadius: "20px", border: "1px solid", fontSize: "13px", cursor: "pointer", fontWeight: 500,
-              borderColor: filterStatus === s ? "#1e3a5f" : "#e2e8f0",
-              background: filterStatus === s ? "#1e3a5f" : "#fff",
-              color: filterStatus === s ? "#fff" : "#64748b" }}>
-            {s} ({s === "전체" ? customers.length : customers.filter(c => c.status === s).length})
-          </button>
+        {statuses.map((s) => (
+          <button key={s} onClick={() => setFilterStatus(s)} style={{ background: filterStatus === s ? "#4f46e5" : "#fff", color: filterStatus === s ? "#fff" : "#64748b", border: "1px solid " + (filterStatus === s ? "#4f46e5" : "#e2e8f0"), borderRadius: "20px", padding: "5px 14px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>{s}</button>
         ))}
       </div>
 
-      {/* 테이블 */}
-      <div style={{ background: "#fff", borderRadius: "14px", boxShadow: "0 1px 6px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>
-        {loading ? <p style={{ padding: "40px", textAlign: "center", color: "#94a3b8" }}>로딩 중...</p> : (
+      <div style={{ background: "#fff", borderRadius: "14px", padding: "0", boxShadow: "0 1px 6px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9", overflow: "hidden" }}>
+        {loading ? <div style={{ padding: "40px", textAlign: "center", color: "#94a3b8" }}>불러오는 중...</div> : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ background: "#f8fafc" }}>
-                {["이름", "나이", "직업", "연락처", "상태", "점수", "메모", "액션"].map(h => (
-                  <th key={h} style={{ padding: "11px 14px", textAlign: "left", fontSize: "12px", color: "#94a3b8", fontWeight: 600 }}>{h}</th>
-                ))}
+              <tr style={{ borderBottom: "1px solid #f1f5f9", background: "#fafafa" }}>
+                {["이름", "나이", "직업", "전화번호", "상태", "점수"].map((h) => <th key={h} style={{ textAlign: "left", padding: "12px 16px", fontSize: "12px", color: "#94a3b8", fontWeight: 600 }}>{h}</th>)}
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={8} style={{ padding: "40px", textAlign: "center", color: "#94a3b8", fontSize: "14px" }}>등록된 고객이 없어요</td></tr>
-              ) : filtered.map(c => (
-                <tr key={c.id} style={{ borderTop: "1px solid #f1f5f9", cursor: "pointer" }}
-                  onClick={() => router.push(`/customers/${c.id}`)}>
-                  <td style={{ padding: "12px 14px" }}>
-                    <span style={{ fontWeight: 700, fontSize: "14px", color: "#1e3a5f", textDecoration: "underline", textDecorationColor: "#bfdbfe" }}>{c.name}</span>
+              {filtered.length === 0 && <tr><td colSpan={6} style={{ padding: "40px", textAlign: "center", color: "#94a3b8", fontSize: "14px" }}>고객이 없어요</td></tr>}
+              {filtered.map((c) => (
+                <tr key={c.id} onClick={() => router.push(`/customers/${c.id}`)} style={{ borderBottom: "1px solid #f8fafc", cursor: "pointer" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")} onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
+                  <td style={{ padding: "14px 16px", fontSize: "14px", fontWeight: 700, color: "#1e293b" }}>{c.name}</td>
+                  <td style={{ padding: "14px 16px", fontSize: "14px", color: "#64748b" }}>{c.age || "-"}</td>
+                  <td style={{ padding: "14px 16px", fontSize: "14px", color: "#64748b" }}>{c.job || "-"}</td>
+                  <td style={{ padding: "14px 16px", fontSize: "14px", color: "#64748b" }}>{c.phone || "-"}</td>
+                  <td style={{ padding: "14px 16px" }}>
+                    <span style={{ background: STATUS_COLOR[c.status] || "#f1f5f9", color: STATUS_TEXT[c.status] || "#64748b", borderRadius: "20px", padding: "3px 10px", fontSize: "12px", fontWeight: 600 }}>{c.status}</span>
                   </td>
-                  <td style={{ padding: "12px 14px", fontSize: "13px", color: "#64748b" }}>{c.age}</td>
-                  <td style={{ padding: "12px 14px", fontSize: "13px", color: "#64748b" }}>{c.job}</td>
-                  <td style={{ padding: "12px 14px", fontSize: "13px", color: "#64748b" }}>{c.phone}</td>
-                  <td style={{ padding: "12px 14px" }}>
-                    <span style={{ background: STATUS_COLOR[c.status] || "#f1f5f9", color: STATUS_TEXT[c.status] || "#64748b", padding: "3px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 600 }}>{c.status}</span>
-                  </td>
-                  <td style={{ padding: "12px 14px", fontSize: "13px", fontWeight: 600, color: "#1e293b" }}>{c.score}점</td>
-                  <td style={{ padding: "12px 14px", fontSize: "12px", color: "#94a3b8", maxWidth: "120px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.memo}</td>
-                  <td style={{ padding: "12px 14px" }} onClick={e => e.stopPropagation()}>
-                    <button onClick={() => window.open(`mailto:?subject=${encodeURIComponent(`[InsureKit] ${c.name} 고객 안내`)}&body=${encodeURIComponent(`안녕하세요, ${c.name} 고객님.\n\n보험 관련 안내 드립니다.\n\n감사합니다.`)}`)}
-                      style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "6px", padding: "4px 10px", cursor: "pointer", color: "#2563eb", fontSize: "12px", fontWeight: 600 }}>✉️ 메일</button>
-                  </td>
+                  <td style={{ padding: "14px 16px", fontSize: "14px", color: "#64748b" }}>{c.score}점</td>
                 </tr>
               ))}
             </tbody>
