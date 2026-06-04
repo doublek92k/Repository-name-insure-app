@@ -1,11 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  "https://tlffsjvkyccwxdpdmcxs.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsZmZzanZreWNjd3hkcGRtY3hzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ0MjcxNzUsImV4cCI6MjA1MDAwMzE3NX0.I839UdiUMyLrJBsf50AH7FHLqLJPMOJYeOjJogOSq9I"
-);
+import { supabase } from "@/lib/supabase";
 
 export default function Home() {
   const [customers, setCustomers] = useState<any[]>([]);
@@ -72,9 +67,7 @@ export default function Home() {
     });
     return (
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        {slices.map((s, i) => (
-          <path key={i} d={s.path} fill={s.color} stroke="#fff" strokeWidth={2} />
-        ))}
+        {slices.map((s, i) => <path key={i} d={s.path} fill={s.color} stroke="#fff" strokeWidth={2} />)}
         <circle cx={cx} cy={cy} r={30} fill="#fff" />
         <text x={cx} y={cy - 4} textAnchor="middle" fontSize="11" fill="#64748b">전체</text>
         <text x={cx} y={cy + 12} textAnchor="middle" fontSize="14" fontWeight="700" fill="#1e293b">{totalCount}명</text>
@@ -82,41 +75,25 @@ export default function Home() {
     );
   };
 
-  const barData = [...customers]
-    .sort((a, b) => (b.score || 0) - (a.score || 0))
-    .slice(0, 6)
-    .map((c) => ({ name: c.name, score: c.score || 0 }));
+  const barData = [...customers].sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 6).map((c) => ({ name: c.name, score: c.score || 0 }));
 
   return (
     <div>
       <h1 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "4px", color: "#1e293b", letterSpacing: "-0.5px" }}>홈 대시보드</h1>
       <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "24px" }}>오늘도 좋은 영업 되세요 🔥</p>
-
       {followups.length > 0 && (
-        <div style={{
-          background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
-          borderRadius: "14px", padding: "16px 24px", marginBottom: "24px",
-          display: "flex", alignItems: "center", gap: "14px",
-          boxShadow: "0 4px 14px rgba(79,70,229,0.3)"
-        }}>
+        <div style={{ background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)", borderRadius: "14px", padding: "16px 24px", marginBottom: "24px", display: "flex", alignItems: "center", gap: "14px", boxShadow: "0 4px 14px rgba(79,70,229,0.3)", flexWrap: "wrap" }}>
           <div style={{ fontSize: "28px" }}>🔔</div>
           <div>
             <div style={{ color: "#fff", fontWeight: 700, fontSize: "15px" }}>오늘 팔로업 {followups.length}건이 있어요!</div>
-            <div style={{ color: "rgba(255,255,255,0.8)", fontSize: "13px", marginTop: "2px" }}>
-              {followups.map((f) => f.customer).join(", ")} — 잊지 말고 연락해 보세요
-            </div>
+            <div style={{ color: "rgba(255,255,255,0.8)", fontSize: "13px", marginTop: "2px" }}>{followups.map((f) => f.customer).join(", ")} — 잊지 말고 연락해 보세요</div>
           </div>
           <div style={{ marginLeft: "auto" }}>
-            <a href="/schedule" style={{
-              background: "rgba(255,255,255,0.2)", color: "#fff", borderRadius: "8px",
-              padding: "6px 14px", fontSize: "13px", fontWeight: 600,
-              textDecoration: "none", border: "1px solid rgba(255,255,255,0.3)"
-            }}>일정 보기 →</a>
+            <a href="/schedule" style={{ background: "rgba(255,255,255,0.2)", color: "#fff", borderRadius: "8px", padding: "6px 14px", fontSize: "13px", fontWeight: 600, textDecoration: "none", border: "1px solid rgba(255,255,255,0.3)" }}>일정 보기 →</a>
           </div>
         </div>
       )}
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "28px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px", marginBottom: "28px" }}>
         {stats.map((s) => (
           <div key={s.label} style={{ background: "#fff", borderRadius: "14px", padding: "22px", boxShadow: "0 1px 6px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "16px", border: "1px solid #f1f5f9" }}>
             <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: s.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px", flexShrink: 0 }}>{s.icon}</div>
@@ -127,11 +104,10 @@ export default function Home() {
           </div>
         ))}
       </div>
-
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: "20px", marginBottom: "28px" }}>
         <div style={{ background: "#fff", borderRadius: "14px", padding: "24px", boxShadow: "0 1px 6px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
           <div style={{ fontWeight: 700, fontSize: "15px", color: "#1e293b", marginBottom: "16px" }}>상태별 고객 분포</div>
-          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px", flexWrap: "wrap" }}>
             <PieChart />
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               {pieData.map((d) => (
@@ -145,22 +121,16 @@ export default function Home() {
             </div>
           </div>
         </div>
-
         <div style={{ background: "#fff", borderRadius: "14px", padding: "24px", boxShadow: "0 1px 6px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
           <div style={{ fontWeight: 700, fontSize: "15px", color: "#1e293b", marginBottom: "16px" }}>성약 가능성 TOP 6 (점수 기준)</div>
-          {barData.length === 0 ? (
-            <div style={{ color: "#94a3b8", fontSize: "13px" }}>고객 데이터 없음</div>
-          ) : (
+          {barData.length === 0 ? <div style={{ color: "#94a3b8", fontSize: "13px" }}>고객 데이터 없음</div> : (
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {barData.map((d, i) => (
                 <div key={d.name} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <div style={{ width: "20px", fontSize: "12px", color: "#94a3b8", textAlign: "right", flexShrink: 0 }}>{i + 1}</div>
                   <div style={{ width: "52px", fontSize: "12px", color: "#374151", fontWeight: 600, flexShrink: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name}</div>
                   <div style={{ flex: 1, background: "#f1f5f9", borderRadius: "6px", height: "18px", overflow: "hidden" }}>
-                    <div style={{
-                      width: `${d.score}%`, height: "100%", borderRadius: "6px",
-                      background: d.score >= 80 ? "linear-gradient(90deg,#059669,#34d399)" : d.score >= 60 ? "linear-gradient(90deg,#4f46e5,#818cf8)" : "linear-gradient(90deg,#d97706,#fbbf24)"
-                    }} />
+                    <div style={{ width: `${d.score}%`, height: "100%", borderRadius: "6px", background: d.score >= 80 ? "linear-gradient(90deg,#059669,#34d399)" : d.score >= 60 ? "linear-gradient(90deg,#4f46e5,#818cf8)" : "linear-gradient(90deg,#d97706,#fbbf24)" }} />
                   </div>
                   <div style={{ width: "36px", fontSize: "12px", fontWeight: 700, color: "#1e293b", textAlign: "right", flexShrink: 0 }}>{d.score}점</div>
                 </div>
@@ -169,15 +139,12 @@ export default function Home() {
           )}
         </div>
       </div>
-
       <div style={{ background: "#fff", borderRadius: "14px", padding: "24px", boxShadow: "0 1px 6px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
         <div style={{ fontWeight: 700, fontSize: "15px", color: "#1e293b", marginBottom: "16px" }}>최근 등록 고객</div>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
-              {["이름", "직업", "상태", "점수"].map((h) => (
-                <th key={h} style={{ textAlign: "left", padding: "8px 12px", fontSize: "12px", color: "#94a3b8", fontWeight: 600 }}>{h}</th>
-              ))}
+              {["이름", "직업", "상태", "점수"].map((h) => <th key={h} style={{ textAlign: "left", padding: "8px 12px", fontSize: "12px", color: "#94a3b8", fontWeight: 600 }}>{h}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -186,9 +153,7 @@ export default function Home() {
                 <td style={{ padding: "12px 12px", fontSize: "14px", fontWeight: 600, color: "#1e293b" }}>{c.name}</td>
                 <td style={{ padding: "12px 12px", fontSize: "14px", color: "#64748b" }}>{c.job}</td>
                 <td style={{ padding: "12px 12px" }}>
-                  <span style={{ background: STATUS_COLOR[c.status] || "#f1f5f9", color: STATUS_TEXT[c.status] || "#64748b", borderRadius: "20px", padding: "3px 10px", fontSize: "12px", fontWeight: 600 }}>
-                    {c.status}
-                  </span>
+                  <span style={{ background: STATUS_COLOR[c.status] || "#f1f5f9", color: STATUS_TEXT[c.status] || "#64748b", borderRadius: "20px", padding: "3px 10px", fontSize: "12px", fontWeight: 600 }}>{c.status}</span>
                 </td>
                 <td style={{ padding: "12px 12px", fontSize: "14px", color: "#64748b" }}>{c.score}점</td>
               </tr>
