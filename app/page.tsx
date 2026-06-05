@@ -122,7 +122,7 @@ export default function Home() {
           </div>
         </div>
         <div style={{ background: "#fff", borderRadius: "14px", padding: "24px", boxShadow: "0 1px 6px rgba(0,0,0,0.06)", border: "1px solid #f1f5f9" }}>
-          <div style={{ fontWeight: 700, fontSize: "15px", color: "#1e293b", marginBottom: "16px" }}>성약 가능성 TOP 6 (점수 기준)</div>
+          <div style={{ fontWeight: 700, fontSize: "15px", color: "#1e293b", marginBottom: "16px" }}>계약 가능성 TOP 6 (점수 기준)</div>
           {barData.length === 0 ? <div style={{ color: "#94a3b8", fontSize: "13px" }}>고객 데이터 없음</div> : (
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {barData.map((d, i) => (
